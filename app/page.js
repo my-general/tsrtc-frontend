@@ -1,11 +1,10 @@
-// tsrtc-frontend/app/page.js
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Ticket from './Ticket';
 
-// This wrapper is necessary for useSearchParams to work correctly
+// This wrapper is necessary for useSearchParams to work correctly in Next.js
 export default function HomePageWrapper() {
   return (
     <Suspense fallback={<div className="text-center mt-10">Loading Route...</div>}>
@@ -15,7 +14,7 @@ export default function HomePageWrapper() {
 }
 
 function HomePage() {
-  const searchParams = useSearchParams(); // <-- THIS LINE IS CRUCIAL
+  const searchParams = useSearchParams();
 
   const [stops, setStops] = useState([]);
   const [selectedFrom, setSelectedFrom] = useState('');
@@ -35,21 +34,14 @@ function HomePage() {
       
       const fetchStopsAndSetDefaults = async () => {
         try {
-          const res = await fetch(`http://localhost:3001/api/routes/${routeFromUrl}/stops`);
+          // Use the production API URL
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/routes/${routeFromUrl}/stops`);
           if (!res.ok) throw new Error(`Failed to fetch stops for route ${routeFromUrl}`);
           const data = await res.json();
           
           setStops(data);
           
           if (stopFromUrl) {
-            // Debugging logs from our previous step
-            console.log("--- DEBUGGING INFO ---");
-            console.log("Value from URL:", `"${stopFromUrl}"`);
-            console.log("First stop name from API:", `"${data[0]?.stop_name}"`);
-            const isMatch = data.some(stop => stop.stop_name === stopFromUrl);
-            console.log("Does the URL value exist in the API list?", isMatch);
-            console.log("----------------------");
-
             setSelectedFrom(stopFromUrl);
           }
         } catch (err) {
@@ -65,7 +57,6 @@ function HomePage() {
   }, [searchParams]);
 
   const handleCalculateFare = async () => {
-    // ... (This function is unchanged)
     if (!selectedFrom || !selectedTo) {
       setError('Please select a starting point and a destination.');
       return;
@@ -80,7 +71,8 @@ function HomePage() {
     setTicketData(null);
 
     try {
-      const res = await fetch('http://localhost:3001/api/orders', {
+      // Use the production API URL
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -103,7 +95,6 @@ function HomePage() {
   };
   
   const handlePayment = async () => {
-    // ... (This function is unchanged)
     const options = {
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
       amount: fareInfo.amount,
@@ -112,21 +103,26 @@ function HomePage() {
       description: `Ticket from ${selectedFrom} to ${selectedTo}`,
       order_id: fareInfo.id,
       handler: async function (response) {
-        const res = await fetch('http://localhost:3001/api/payment/verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_signature: response.razorpay_signature
-            })
-        });
-        const result = await res.json();
-        if(result.status === 'success') {
-            setTicketData(result.ticket);
-            setFareInfo(null);
-        } else {
-            setError('Payment verification failed. Please contact support.');
+        try {
+            // Use the production API URL
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payment/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_signature: response.razorpay_signature
+                })
+            });
+            const result = await res.json();
+            if(result.status === 'success') {
+                setTicketData(result.ticket);
+                setFareInfo(null);
+            } else {
+                setError('Payment verification failed. Please contact support.');
+            }
+        } catch (err) {
+            setError('An error occurred during payment verification.');
         }
       },
       prefill: {
