@@ -313,9 +313,14 @@ function HomePage() {
         
         <div className="bg-gray-50 px-6 py-4 border-t border-gray-100">
           <p className="text-center text-xs text-gray-500">
-            Safe and convenient bus travel with TSRTC
+            Safe and convenient bus travel with TSRTC 
           </p>
         </div>
+        <div className="bg-gray-50 px-6 py-4 border-t border-gray-100">
+          <p className="text-center text-xs text-gray-500">
+            By Syed Taher 
+          </p>
+        </div>          
       </div>
     </div>
   );
