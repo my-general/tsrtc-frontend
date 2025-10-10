@@ -21,6 +21,7 @@ export default function HomePageWrapper() {
 
 function HomePage() {
   const searchParams = useSearchParams();
+  const API_URL = process.env.NEXT_PUBLIC_API_URL; // Define the base URL once
 
   // State for data
   const [allRoutes, setAllRoutes] = useState([]);
@@ -35,7 +36,7 @@ function HomePage() {
   
   // State for UI
   const [isLoading, setIsLoading] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false); // New state for payment verification
+  const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState('');
   const [routeFromUrl, setRouteFromUrl] = useState(null);
 
@@ -55,7 +56,7 @@ function HomePage() {
       const fetchRoutes = async () => {
         setIsLoading(true);
         try {
-          const res = await fetch(`http://localhost:3001/api/routes`);
+          const res = await fetch(`${API_URL}/api/routes`);
           if (!res.ok) throw new Error('Could not fetch routes.');
           const data = await res.json();
           setAllRoutes(data);
@@ -67,9 +68,9 @@ function HomePage() {
       };
       fetchRoutes();
     }
-  }, [searchParams]);
+  }, [searchParams, API_URL]);
 
-  // Effect 2: Fetch stops whenever a route is selected, with a cleanup function to prevent race conditions
+  // Effect 2: Fetch stops whenever a route is selected
   useEffect(() => {
     let isMounted = true;
 
@@ -89,7 +90,7 @@ function HomePage() {
       }
 
       try {
-        const res = await fetch(`http://localhost:3001/api/routes/${selectedRoute}/stops`);
+        const res = await fetch(`${API_URL}/api/routes/${selectedRoute}/stops`);
         if (!res.ok) throw new Error(`Failed to fetch stops for route ${selectedRoute}`);
         const data = await res.json();
         
@@ -106,7 +107,7 @@ function HomePage() {
     fetchStopsForRoute();
 
     return () => { isMounted = false; };
-  }, [selectedRoute, routeFromUrl]);
+  }, [selectedRoute, routeFromUrl, API_URL]);
 
   const handleCalculateFare = async () => {
     if (!selectedRoute || !selectedFrom || !selectedTo) {
@@ -124,7 +125,7 @@ function HomePage() {
     setTicketData(null);
 
     try {
-      const res = await fetch('http://localhost:3001/api/orders', {
+      const res = await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -163,7 +164,7 @@ function HomePage() {
         setIsVerifying(true);
         setError('');
         try {
-          const res = await fetch('http://localhost:3001/api/payment/verify', {
+          const res = await fetch(`${API_URL}/api/payment/verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(response)
@@ -195,7 +196,6 @@ function HomePage() {
   };
 
   const handleNewBooking = () => {
-    // Reset all state to initial values
     setTicketData(null);
     setFareInfo(null);
     setError('');
@@ -204,12 +204,11 @@ function HomePage() {
     setSelectedTo('');
     setStops([]);
     
-    // Re-fetch all routes if in manual mode
     if (!routeFromUrl) {
       const fetchRoutes = async () => {
         setIsLoading(true);
         try {
-          const res = await fetch(`http://localhost:3001/api/routes`);
+          const res = await fetch(`${API_URL}/api/routes`);
           if (!res.ok) throw new Error('Could not fetch routes.');
           const data = await res.json();
           setAllRoutes(data);
@@ -227,12 +226,10 @@ function HomePage() {
     return `${prefix}-${selectedRoute}-${stop.stop_sequence}-${index}`.replace(/\s+/g, '-');
   };
 
-  // Main Return Statement
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 py-8 px-4">
       <div className="max-w-md mx-auto bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
         
-        {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-orange-600 p-6 text-white">
           <div className="flex items-center justify-center space-x-3 mb-2">
             <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
@@ -250,7 +247,6 @@ function HomePage() {
           )}
         </div>
 
-        {/* Conditional Rendering: Ticket View or Booking View */}
         {ticketData ? (
           <div>
             <Ticket ticketInfo={ticketData} journeyInfo={{ from: selectedFrom, to: selectedTo }} />
@@ -315,12 +311,12 @@ function HomePage() {
           </div>
         )}
         
-        {/* Footer */}
         <div className="bg-gray-50 px-6 py-4 border-t border-gray-100">
-          <p className="text-center text-xs text-gray-500">Safe and convenient bus travel with TSRTC</p>
+          <p className="text-center text-xs text-gray-500">
+            Safe and convenient bus travel with TSRTC
+          </p>
         </div>
       </div>
     </div>
   );
 }
-
